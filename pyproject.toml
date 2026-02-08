@@ -1,0 +1,18 @@
+[project]
+name = "kafka-brockers"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Anastasiya Zakharova",email = "111999983+Nastya-Leto@users.noreply.github.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "httpx (>=0.28.1,<0.29.0)",
+    "pytest (>=9.0.2,<10.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

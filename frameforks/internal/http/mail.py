@@ -1,3 +1,5 @@
+from json import loads
+
 import httpx
 
 
@@ -15,5 +17,17 @@ class MailApi:
             "start": 0
         }
         response = self._client.get('/mail/mail/search', params=params)
-        print(response.content)
+        print(f'find_message: {response.json()}')
         return response
+
+    @staticmethod
+    def get_activation_token_by_login(response, login):
+        token = None
+        resp_js = response.json()
+        for item in resp_js['items']:
+            user_data = loads(item['Content']['Body'])
+            user_login = user_data['Login']
+            if user_login == login:
+                token = user_data['ConfirmationLinkUrl'].split('/')[-1]
+                assert token is not None, 'Токен отсутствует'
+        return token

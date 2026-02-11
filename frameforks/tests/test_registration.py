@@ -2,7 +2,6 @@ import time
 import uuid
 
 from frameforks.internal.http.account import AccountApi
-from frameforks.internal.http.mail import MailApi
 from frameforks.internal.kafka.producer import KafkaProducer
 from frameforks.internal.http.mail import MailApi
 
@@ -75,7 +74,7 @@ def test_register_events_error_consumer(mail: MailApi, kafka_producer: KafkaProd
         response = mail.find_message(query=base)
         if response.json()['total'] > 0:
             # Получение токена из письма
-            token = MailApi.get_activation_token_by_login(response, login=base)
+            token = mail.get_activation_token_by_login(response, login=base)
             # Активация пользователя
             response = account.activate_user(token)
             assert response.json().get('resource').get('login') == base

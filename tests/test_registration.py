@@ -1,13 +1,10 @@
-import json
 import time
 import uuid
 
+from frameforks.helpers.kafka.consumers.register_events import RegisterEventsSubscriber
 from frameforks.internal.http.account import AccountApi
-from frameforks.internal.kafka.consumer import Consumer
 from frameforks.internal.kafka.producer import KafkaProducer
 from frameforks.internal.http.mail import MailApi
-from kafka import KafkaConsumer
-import logging
 
 
 def test_failed_registration(account: AccountApi, mail: MailApi):
@@ -88,16 +85,15 @@ def test_register_events_error_consumer(mail: MailApi, kafka_producer: KafkaProd
         raise AssertionError('Email not found')
 
 
-def test_success_registration_with_kafka_producer_consumer(kafka_consumer: Consumer,
+def test_success_registration_with_kafka_producer_consumer(register_events_subscriber: RegisterEventsSubscriber,
                                                            kafka_producer: KafkaProducer) -> None:
     base = uuid.uuid4().hex
     message = {'login': base, 'email': f'{base}@mail.ru', 'password': '1231231614'}
     kafka_producer.send('register-events', message)
     for i in range(10):
-        message = kafka_consumer.get_message()
+        message = register_events_subscriber.get_message()
         if isinstance(message.value, dict) and 'login' in message.value:
             if base == message.value['login']:
                 break
     else:
         raise AssertionError('login not found')
-

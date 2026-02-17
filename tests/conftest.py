@@ -1,6 +1,6 @@
-from typing import Generator
-
 import pytest
+
+from frameforks.helpers.kafka.consumers.register_events import RegisterEventsSubscriber
 from frameforks.internal.http.account import AccountApi
 from frameforks.internal.http.mail import MailApi
 from frameforks.internal.kafka.consumer import Consumer
@@ -24,6 +24,11 @@ def kafka_producer() -> Producer:
 
 
 @pytest.fixture(scope='session')
-def kafka_consumer() -> Consumer:
-    with Consumer() as consumer:
+def register_events_subscriber() -> RegisterEventsSubscriber:
+    return RegisterEventsSubscriber()
+
+
+@pytest.fixture(scope='session', autouse=True)
+def kafka_consumer(register_events_subscriber:RegisterEventsSubscriber) -> Consumer:
+    with Consumer(subscribers=[register_events_subscriber]) as consumer:
         yield consumer

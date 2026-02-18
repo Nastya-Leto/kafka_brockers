@@ -13,7 +13,7 @@ from frameforks.internal.http.mail import MailApi
 @pytest.fixture
 def register_message() -> dict[str, str]:
     base = uuid.uuid4().hex
-    return {'login': base, 'email': f'{base}mail.ru', 'password': '123123n'}
+    return {'login': base, 'email': f'{base}@mail.ru', 'password': '123123n'}
 
 
 @pytest.fixture
@@ -141,15 +141,14 @@ def test_failed_registration_end_2_end(register_events_subscriber: RegisterEvent
     print(f'login:{login}')
     account.register_user(**invalid_register_message)
     register_events_subscriber.find_message(login)
-    register_events_errors_subscriber.find_message_events_errors(login, error_type = 'validation')
-
+    register_events_errors_subscriber.find_message_events_errors(login, error_type='validation')
 
 
 def test_invalid_message_end_2_end(kafka_producer: KafkaProducer,
-                                         register_events_subscriber: RegisterEventsSubscriber,
-                                         register_events_errors_subscriber: RegisterEventsErrorsSubscriber,
-                                         invalid_register_message: dict[str, str],
-                                         account: AccountApi):
+                                   register_events_subscriber: RegisterEventsSubscriber,
+                                   register_events_errors_subscriber: RegisterEventsErrorsSubscriber,
+                                   invalid_register_message: dict[str, str],
+                                   account: AccountApi):
     login = uuid.uuid4().hex
 
     message = {
@@ -173,4 +172,4 @@ def test_invalid_message_end_2_end(kafka_producer: KafkaProducer,
     }
     kafka_producer.send('register-events-errors', message)
     register_events_errors_subscriber.find_message_events_errors(login, error_type='unknown')
-    register_events_errors_subscriber.find_message_events_errors(login, error_type = 'validation')
+    register_events_errors_subscriber.find_message_events_errors(login, error_type='validation')

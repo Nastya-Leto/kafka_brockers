@@ -2,7 +2,7 @@ import json
 import threading
 import time
 
-from black.trans import defaultdict
+from collections import defaultdict
 from kafka import KafkaConsumer
 
 from frameforks.internal.kafka.singleton import Singleton

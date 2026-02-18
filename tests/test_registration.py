@@ -1,10 +1,25 @@
 import time
 import uuid
 
+import pytest
+
 from frameforks.helpers.kafka.consumers.register_events import RegisterEventsSubscriber
+from frameforks.helpers.kafka.consumers.resgister_events_errors import RegisterEventsErrorsSubscriber
 from frameforks.internal.http.account import AccountApi
 from frameforks.internal.kafka.producer import KafkaProducer
 from frameforks.internal.http.mail import MailApi
+
+
+@pytest.fixture
+def register_message() -> dict[str, str]:
+    base = uuid.uuid4().hex
+    return {'login': base, 'email': f'{base}mail.ru', 'password': '123123n'}
+
+
+@pytest.fixture
+def invalid_register_message() -> dict[str, str]:
+    base = uuid.uuid4().hex
+    return {'login': base, 'email': '', 'password': 'string1'}
 
 
 def test_failed_registration(account: AccountApi, mail: MailApi):
@@ -97,3 +112,65 @@ def test_success_registration_with_kafka_producer_consumer(register_events_subsc
                 break
     else:
         raise AssertionError('login not found')
+
+
+def test_success_registration_end_2_end(
+        register_events_subscriber: RegisterEventsSubscriber,
+        register_message: dict[str, str],
+        account: AccountApi,
+        mail: MailApi):
+    login = register_message['login']
+    print(f'login:{login}')
+    account.register_user(**register_message)
+    register_events_subscriber.find_message(login)
+
+    for _ in range(10):
+        response = mail.find_message(query=login)
+        if response.json()['total'] > 0:
+            break
+        time.sleep(1)
+    else:
+        raise AssertionError('Email not found')
+
+
+def test_failed_registration_end_2_end(register_events_subscriber: RegisterEventsSubscriber,
+                                       register_events_errors_subscriber: RegisterEventsErrorsSubscriber,
+                                       invalid_register_message: dict[str, str],
+                                       account: AccountApi):
+    login = invalid_register_message['login']
+    print(f'login:{login}')
+    account.register_user(**invalid_register_message)
+    register_events_subscriber.find_message(login)
+    register_events_errors_subscriber.find_message_events_errors(login, error_type = 'validation')
+
+
+
+def test_invalid_message_end_2_end(kafka_producer: KafkaProducer,
+                                         register_events_subscriber: RegisterEventsSubscriber,
+                                         register_events_errors_subscriber: RegisterEventsErrorsSubscriber,
+                                         invalid_register_message: dict[str, str],
+                                         account: AccountApi):
+    login = uuid.uuid4().hex
+
+    message = {
+        "input_data": {
+            "login": login,
+            "email": "string@mail.ru",
+            "password": 'string'
+        },
+        "error_message": {
+            "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+            "title": "Validation failed",
+            "status": 400,
+            "traceId": "00-2bd2ede7c3e4dcf40c4b7a62ac23f448-839ff284720ea656-01",
+            "errors": {
+                "Email": [
+                    "Taken"
+                ]
+            }
+        },
+        "error_type": "unknown"
+    }
+    kafka_producer.send('register-events-errors', message)
+    register_events_errors_subscriber.find_message_events_errors(login, error_type='unknown')
+    register_events_errors_subscriber.find_message_events_errors(login, error_type = 'validation')

@@ -95,8 +95,3 @@ class Consumer(Singleton):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.stop()
 
-
-if __name__ == '__main__':
-    with Consumer() as consumer:
-        message = consumer.get_message()
-        print(message)

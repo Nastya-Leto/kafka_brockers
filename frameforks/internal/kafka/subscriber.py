@@ -22,6 +22,31 @@ class Subscriber(ABC):
 
     def get_message(self, timeout: int = 90):
         try:
-            return self._messages.get(timeout=timeout)
-        except queue.Queue:
+            message = self._messages.get(timeout=timeout)
+            print(f'message:{message}')
+            return message
+        except queue.Empty:
+            raise AssertionError(f'No messages from topic: {self.topic}, within timeout {timeout}')
+
+    def find_message(self, login, timeout: int = 90):
+        try:
+            message = self._messages.get(timeout=timeout)
+            print(f'message:{message}')
+            if isinstance(message.value, dict) and message.value.get('login') == login:
+                return message.value
+            else:
+                raise AssertionError('login not found')
+        except queue.Empty:
+            raise AssertionError(f'No messages from topic: {self.topic}, within timeout {timeout}')
+
+    def find_message_events_errors(self, login, error_type, timeout: int = 90):
+        try:
+            message = self._messages.get(timeout=timeout)
+            print(f'message:{message}')
+            if isinstance(message.value, dict) and message.value.get('input_data').get('login') == login:
+                if message.value.get('error_type') == error_type:
+                    return True
+            else:
+                raise AssertionError('login not found')
+        except queue.Empty:
             raise AssertionError(f'No messages from topic: {self.topic}, within timeout {timeout}')

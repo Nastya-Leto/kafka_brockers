@@ -1,6 +1,7 @@
 import pytest
 
 from frameforks.helpers.kafka.consumers.register_events import RegisterEventsSubscriber
+from frameforks.helpers.kafka.consumers.resgister_events_errors import RegisterEventsErrorsSubscriber
 from frameforks.internal.http.account import AccountApi
 from frameforks.internal.http.mail import MailApi
 from frameforks.internal.kafka.consumer import Consumer
@@ -28,7 +29,13 @@ def register_events_subscriber() -> RegisterEventsSubscriber:
     return RegisterEventsSubscriber()
 
 
+@pytest.fixture(scope='session')
+def register_events_errors_subscriber() -> RegisterEventsErrorsSubscriber:
+    return RegisterEventsErrorsSubscriber()
+
+
 @pytest.fixture(scope='session', autouse=True)
-def kafka_consumer(register_events_subscriber:RegisterEventsSubscriber) -> Consumer:
-    with Consumer(subscribers=[register_events_subscriber]) as consumer:
+def kafka_consumer(register_events_subscriber: RegisterEventsSubscriber,
+                   register_events_errors_subscriber: RegisterEventsErrorsSubscriber) -> Consumer:
+    with Consumer(subscribers=[register_events_subscriber, register_events_errors_subscriber]) as consumer:
         yield consumer

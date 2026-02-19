@@ -141,7 +141,7 @@ def test_failed_registration_end_2_end(register_events_subscriber: RegisterEvent
     print(f'login:{login}')
     account.register_user(**invalid_register_message)
     register_events_subscriber.find_message(login)
-    register_events_errors_subscriber.find_message_events_errors(login, error_type='validation')
+    register_events_errors_subscriber.find_message(login, error_type='validation')
 
 
 def test_invalid_message_end_2_end(kafka_producer: KafkaProducer,
@@ -171,5 +171,5 @@ def test_invalid_message_end_2_end(kafka_producer: KafkaProducer,
         "error_type": "unknown"
     }
     kafka_producer.send('register-events-errors', message)
-    register_events_errors_subscriber.find_message_events_errors(login, error_type='unknown')
-    register_events_errors_subscriber.find_message_events_errors(login, error_type='validation')
+    register_events_errors_subscriber.find_message(login, error_type='unknown')
+    register_events_errors_subscriber.find_message(login, error_type='validation')

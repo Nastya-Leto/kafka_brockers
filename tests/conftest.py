@@ -6,6 +6,7 @@ from frameforks.internal.http.account import AccountApi
 from frameforks.internal.http.mail import MailApi
 from frameforks.internal.kafka.consumer import Consumer
 from frameforks.internal.kafka.producer import Producer
+from frameforks.internal.rmq.publischer import RmqPublisher
 
 
 @pytest.fixture(scope='session')
@@ -22,6 +23,12 @@ def mail() -> MailApi:
 def kafka_producer() -> Producer:
     with Producer() as producer:
         yield producer
+
+
+@pytest.fixture(scope='session')
+def rmq_producer() -> RmqPublisher:
+    with RmqPublisher() as publisher:
+        yield publisher
 
 
 @pytest.fixture(scope='session')

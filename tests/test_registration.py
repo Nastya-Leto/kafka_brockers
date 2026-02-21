@@ -10,6 +10,7 @@ from frameforks.helpers.kafka.consumers.resgister_events_errors import RegisterE
 from frameforks.internal.http.account import AccountApi
 from frameforks.internal.kafka.producer import KafkaProducer
 from frameforks.internal.http.mail import MailApi
+from frameforks.internal.rmq.publischer import RmqPublisher
 
 
 @pytest.fixture
@@ -177,25 +178,30 @@ def test_invalid_message_end_2_end(kafka_producer: KafkaProducer,
     register_events_errors_subscriber.find_message(login, error_type='validation')
 
 
-def test_rmw():
-    connection = pika.BlockingConnection(pika.URLParameters('amqp://guest:guest@185.185.143.231:5672'))
-    channel = connection.channel()
+def test_rmw(rmq_producer: RmqPublisher) -> None:
     address = f'{uuid.uuid4().hex}@mail.ru'
     message = {
         'address': address,
-        'subject': 'Test message',
+        'subject': 'Publish message',
         'body': 'Test message'
     }
-    message = json.dumps(message).encode('utf-8')
-    try:
-        exchange = channel.exchange_declare(
-            exchange='dm.mail.sending', exchange_type='topic', durable=True
-        )
-        properties = pika.BasicProperties(
-            content_type='application/json',
-            correlation_id=str(uuid.uuid4())
-        )
-        channel.basic_publish(exchange='dm.mail.sending', routing_key='', body=message, properties=properties)
-    finally:
-        channel.close()
-        connection.close()
+    rmq_producer.publish(exchange='dm.mail.sending', message=message)
+
+
+def test_rmw_with_search_mail(rmq_producer: RmqPublisher,
+                              mail: MailApi) -> None:
+    address = f'{uuid.uuid4().hex}@mail.ru'
+    message = {
+        'address': address,
+        'subject': 'Publish message',
+        'body': 'Publish message'
+    }
+    rmq_producer.publish(exchange='dm.mail.sending', message=message)
+
+    for _ in range(10):
+        response = mail.find_message(query=address)
+        if response.json()['total'] > 0:
+            break
+        time.sleep(1)
+    else:
+        raise AssertionError('Email not found')

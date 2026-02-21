@@ -1,10 +1,9 @@
 import json
 import uuid
+from types import TracebackType
 
 import pika
-from isort.utils import TrieNode
 from pika.adapters.blocking_connection import BlockingChannel
-
 from frameforks.internal.kafka.singleton import Singleton
 
 
@@ -28,7 +27,9 @@ class RmqPublisher(Singleton):
         self._start()
         return self
 
-    def __exit__(self, exc_type: type[BaseException], exc_val: BaseException | None, exc_tb: TrieNode | None) -> None:
+    def __exit__(self, exc_type: type[BaseException],
+                 exc_val: BaseException | None,
+                 exc_tb: TracebackType | None) -> None:
         self._stop()
 
     def publish(self,

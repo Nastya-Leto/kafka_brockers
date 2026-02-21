@@ -1,7 +1,9 @@
+import json
 import time
 import uuid
 
 import pytest
+import pika
 
 from frameforks.helpers.kafka.consumers.register_events import RegisterEventsSubscriber
 from frameforks.helpers.kafka.consumers.resgister_events_errors import RegisterEventsErrorsSubscriber
@@ -173,3 +175,27 @@ def test_invalid_message_end_2_end(kafka_producer: KafkaProducer,
     kafka_producer.send('register-events-errors', message)
     register_events_errors_subscriber.find_message(login, error_type='unknown')
     register_events_errors_subscriber.find_message(login, error_type='validation')
+
+
+def test_rmw():
+    connection = pika.BlockingConnection(pika.URLParameters('amqp://guest:guest@185.185.143.231:5672'))
+    channel = connection.channel()
+    address = f'{uuid.uuid4().hex}@mail.ru'
+    message = {
+        'address': address,
+        'subject': 'Test message',
+        'body': 'Test message'
+    }
+    message = json.dumps(message).encode('utf-8')
+    try:
+        exchange = channel.exchange_declare(
+            exchange='dm.mail.sending', exchange_type='topic', durable=True
+        )
+        properties = pika.BasicProperties(
+            content_type='application/json',
+            correlation_id=str(uuid.uuid4())
+        )
+        channel.basic_publish(exchange='dm.mail.sending', routing_key='', body=message, properties=properties)
+    finally:
+        channel.close()
+        connection.close()

@@ -2,6 +2,7 @@ import pytest
 
 from frameforks.helpers.kafka.consumers.register_events import RegisterEventsSubscriber
 from frameforks.helpers.kafka.consumers.resgister_events_errors import RegisterEventsErrorsSubscriber
+from frameforks.helpers.rmq.consumers.dm_mail_sending import DmMailSending
 from frameforks.internal.http.account import AccountApi
 from frameforks.internal.http.mail import MailApi
 from frameforks.internal.kafka.consumer import Consumer
@@ -45,4 +46,11 @@ def register_events_errors_subscriber() -> RegisterEventsErrorsSubscriber:
 def kafka_consumer(register_events_subscriber: RegisterEventsSubscriber,
                    register_events_errors_subscriber: RegisterEventsErrorsSubscriber) -> Consumer:
     with Consumer(subscribers=[register_events_subscriber, register_events_errors_subscriber]) as consumer:
+        yield consumer
+
+
+@pytest.fixture(scope='session', autouse=True)
+def rmq_dm_mail_sending_consumer(register_events_subscriber: RegisterEventsSubscriber,
+                                 register_events_errors_subscriber: RegisterEventsErrorsSubscriber) -> DmMailSending:
+    with DmMailSending() as consumer:
         yield consumer

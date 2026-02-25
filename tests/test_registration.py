@@ -178,7 +178,7 @@ def test_invalid_message_end_2_end(kafka_producer: KafkaProducer,
     register_events_errors_subscriber.find_message(login, error_type='validation')
 
 
-def test_rmw(rmq_producer: RmqPublisher) -> None:
+def test_rmq(rmq_producer: RmqPublisher) -> None:
     address = f'{uuid.uuid4().hex}@mail.ru'
     message = {
         'address': address,
@@ -188,7 +188,7 @@ def test_rmw(rmq_producer: RmqPublisher) -> None:
     rmq_producer.publish(exchange='dm.mail.sending', message=message)
 
 
-def test_rmw_with_search_mail(rmq_producer: RmqPublisher,
+def test_rmq_with_search_mail(rmq_producer: RmqPublisher,
                               mail: MailApi) -> None:
     address = f'{uuid.uuid4().hex}@mail.ru'
     message = {

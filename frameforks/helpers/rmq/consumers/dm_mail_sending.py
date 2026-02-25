@@ -13,7 +13,11 @@ class DmMailSending(Consumer):
 
         while time.time() - start_time < timeout:
             message = self.get_message(timeout=timeout)
-            if json.loads(message['body'])['Login'] == login:
-                break
-            else:
-                raise AssertionError(f'Message for rmq: {self.exchange} not found')
+            if not isinstance(message, dict):
+                continue
+            try:
+                if json.loads(message['body'])['Login'] == login:
+                    return message
+            except json.JSONDecodeError:
+                continue
+        raise AssertionError(f'Message for login {login} not found in {timeout}s')

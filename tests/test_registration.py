@@ -10,6 +10,7 @@ from frameforks.helpers.kafka.consumers.resgister_events_errors import RegisterE
 from frameforks.internal.http.account import AccountApi
 from frameforks.internal.kafka.producer import KafkaProducer
 from frameforks.internal.http.mail import MailApi
+from frameforks.internal.rmq.consumer import Consumer
 from frameforks.internal.rmq.publischer import RmqPublisher
 
 
@@ -23,6 +24,12 @@ def register_message() -> dict[str, str]:
 def invalid_register_message() -> dict[str, str]:
     base = uuid.uuid4().hex
     return {'login': base, 'email': '', 'password': 'string1'}
+
+
+def test_send_message_producer(mail: MailApi, kafka_producer: KafkaProducer):
+    base = uuid.uuid4().hex
+    message = {'login': base, 'email': f'{base}@mail.ru', 'password': '123123'}
+    kafka_producer.send('register-events', message)
 
 
 def test_failed_registration(account: AccountApi, mail: MailApi):
@@ -205,3 +212,8 @@ def test_rmq_with_search_mail(rmq_producer: RmqPublisher,
         time.sleep(1)
     else:
         raise AssertionError('Email not found')
+
+def test_rmq_subscriber():
+    with Consumer() as consumer:
+        message = consumer.get_message()
+        print(message)

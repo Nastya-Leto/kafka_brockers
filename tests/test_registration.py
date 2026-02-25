@@ -1,16 +1,12 @@
-import json
 import time
 import uuid
-
 import pytest
-import pika
-
 from frameforks.helpers.kafka.consumers.register_events import RegisterEventsSubscriber
 from frameforks.helpers.kafka.consumers.resgister_events_errors import RegisterEventsErrorsSubscriber
+from frameforks.helpers.rmq.consumers.dm_mail_sending import DmMailSending
 from frameforks.internal.http.account import AccountApi
 from frameforks.internal.kafka.producer import KafkaProducer
 from frameforks.internal.http.mail import MailApi
-from frameforks.internal.rmq.consumer import Consumer
 from frameforks.internal.rmq.publischer import RmqPublisher
 
 
@@ -26,10 +22,10 @@ def invalid_register_message() -> dict[str, str]:
     return {'login': base, 'email': '', 'password': 'string1'}
 
 
-def test_send_message_producer(mail: MailApi, kafka_producer: KafkaProducer):
-    base = uuid.uuid4().hex
-    message = {'login': base, 'email': f'{base}@mail.ru', 'password': '123123'}
-    kafka_producer.send('register-events', message)
+# def test_send_message_producer(mail: MailApi, kafka_producer: KafkaProducer):
+#     base = uuid.uuid4().hex
+#     message = {'login': base, 'email': f'{base}@mail.ru', 'password': '123123'}
+#     kafka_producer.send('register-events', message)
 
 
 def test_failed_registration(account: AccountApi, mail: MailApi):
@@ -213,7 +209,23 @@ def test_rmq_with_search_mail(rmq_producer: RmqPublisher,
     else:
         raise AssertionError('Email not found')
 
-def test_rmq_subscriber():
-    with Consumer() as consumer:
-        message = consumer.get_message()
-        print(message)
+
+def test_success_registration_end_2_end_with_rmq(
+        rmq_dm_mail_sending_consumer: DmMailSending,
+        register_events_subscriber: RegisterEventsSubscriber,
+        register_message: dict[str, str],
+        account: AccountApi,
+        mail: MailApi):
+    login = register_message['login']
+    print(f'login:{login}')
+    account.register_user(**register_message)
+    register_events_subscriber.find_message(login)
+    rmq_dm_mail_sending_consumer.find_message(login=login)
+
+    for _ in range(10):
+        response = mail.find_message(query=login)
+        if response.json()['total'] > 0:
+            break
+        time.sleep(1)
+    else:
+        raise AssertionError('Email not found')

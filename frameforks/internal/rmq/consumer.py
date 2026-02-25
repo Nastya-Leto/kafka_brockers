@@ -6,7 +6,6 @@ import pika
 from frameforks.internal.kafka.singleton import Singleton
 
 
-
 class Consumer(Singleton):
     _started: bool = False
 
@@ -20,7 +19,15 @@ class Consumer(Singleton):
         self._messages: queue.Queue = queue.Queue()
         self._queue_name: str = ""
 
-    def start(self):
+    @property
+    def exchange(self):
+        raise NotImplementedError('Set exchange')
+
+    @property
+    def routing_key(self):
+        raise NotImplementedError('Set routing_key')
+
+    def _start(self):
         result = self._channel.queue_declare(queue="",
                                              exclusive=True,
                                              auto_delete=True,
@@ -29,8 +36,8 @@ class Consumer(Singleton):
         print(f'Declare queue with name {self._queue_name}')
 
         self._channel.queue_bind(queue=self._queue_name,
-                                 exchange='dm.mail.sending',
-                                 routing_key='#')
+                                 exchange=self.exchange,
+                                 routing_key=self.routing_key)
 
         self._running.set()
         self._ready.clear()
@@ -62,11 +69,11 @@ class Consumer(Singleton):
                 except json.JSONDecodeError:
                     data = body_str
                 self._messages.put(data)
-                print('Received message',data)
+                print('Received message', data)
             except Exception as e:
                 print(f'Error while processing message rmq: {e}')
 
-        self._channel.basic_consume(self._queue_name, on_message_callback)
+        self._channel.basic_consume(self._queue_name, on_message_callback, auto_ack=True)
 
         try:
             while self._running.is_set():
@@ -75,7 +82,7 @@ class Consumer(Singleton):
         except Exception as e:
             print(f'Error: {e}')
 
-    def stop(self):
+    def _stop(self):
         self._running.clear()
 
         if self._thread and self._thread.is_alive():
@@ -95,13 +102,12 @@ class Consumer(Singleton):
             except Exception as e:
                 print(f'Error while closing consumer: {e}')
 
-
         self._started = False
         print('consumer stopped')
 
     def __enter__(self):
-        self.start()
+        self._start()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self.stop()
+        self._stop()
